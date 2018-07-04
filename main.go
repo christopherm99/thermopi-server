@@ -27,6 +27,6 @@ func main() {
 	// Toggle pin 20 times
 	for x := 0; x < 20; x++ {
 		pin.Toggle()
-		time.Sleep(time.Second / 5)
+		time.Sleep(time.Second / 10)
 	}
 }

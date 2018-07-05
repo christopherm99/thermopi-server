@@ -9,14 +9,26 @@ import (
 	"strconv"
 	"strings"
 	"regexp"
+	"time"
+	"encoding/csv"
 )
+
+
+type timeslot struct {
+	begin time.Time
+	end time.Time
+	temp int
+}
+
 
 var (
 	done = make(chan struct{})
 	pin = rpio.Pin(4)
 	uartServiceId = gatt.MustParseUUID("6e400001-b5a3-f393-e0a9-e50e24dcca9e")
 	uartServiceTXCharId = gatt.MustParseUUID("6e400003-b5a3-f393-e0a9-e50e24dcca9e")
+	schedule [7]timeslot
 )
+
 
 func onStateChanged(d gatt.Device, s gatt.State) {
 	log.Println("State:", s)
@@ -97,6 +109,7 @@ func onPeriphDisconnected(p gatt.Peripheral, err error) {
 
 
 func main() {
+	// === RASPBERRY PI GPIO ===
 	if err := rpio.Open(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -104,7 +117,23 @@ func main() {
 	defer rpio.Close()
 	pin.Output()
 
+	// === IMPORTING SCHEDULE ===
+	file, err := os.Open("schedule.csv")
+	if err != nil {
+		panic(err)
+	}
+	csvRead := csv.NewReader(file)
+	slcCsv, err := csvRead.ReadAll()
+	if err != nil {
+		panic(err)
+	}
+	for hour, row := range slcCsv[1:] {
+		for day, temp := range row[1:] {
+			schedule[day].begin = time.
+		}
+	}
 
+	// === BLUETOOTH LOW ENERGY CONNECTIONS ===
 	var DefaultClientOptions = []gatt.Option{
 		gatt.LnxMaxConnections(1),
 		gatt.LnxDeviceID(-1, false),

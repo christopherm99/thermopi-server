@@ -1,32 +1,128 @@
 package main
 
 import (
+	"github.com/paypal/gatt"
+	"log"
 	"github.com/stianeikeland/go-rpio"
 	"fmt"
 	"os"
-	"time"
+	"strconv"
+	"strings"
+	"regexp"
 )
 
 var (
-	// Use mcu pin 10, corresponds to physical pin 19 on the pi
+	done = make(chan struct{})
 	pin = rpio.Pin(4)
+	uartServiceId = gatt.MustParseUUID("6e400001-b5a3-f393-e0a9-e50e24dcca9e")
+	uartServiceTXCharId = gatt.MustParseUUID("6e400003-b5a3-f393-e0a9-e50e24dcca9e")
 )
+
+func onStateChanged(d gatt.Device, s gatt.State) {
+	log.Println("State:", s)
+	switch s {
+	case gatt.StatePoweredOn:
+		log.Println("scanning...")
+		d.Scan([]gatt.UUID{}, false)
+		return
+	default:
+		d.StopScanning()
+	}
+}
+
+func onPeriphDiscovered(p gatt.Peripheral, a *gatt.Advertisement, i int) {
+	if p.ID() == "C9:6B:2C:72:BE:FA" {
+		p.Device().StopScanning()
+		p.Device().Connect(p)
+	}
+}
+
+func onPeriphConnected(p gatt.Peripheral, err error) {
+	log.Printf("%v connected.\n", p.Name())
+
+	services, err := p.DiscoverServices(nil)
+	if err != nil {
+		log.Printf("Failed to discover services, err: %s\n", err)
+		return
+	}
+
+	for _, service := range services {
+		if service.UUID().Equal(uartServiceId) {
+			log.Printf("Service Found %s\n", service.Name())
+
+			characteristics, _ := p.DiscoverCharacteristics(nil, service)
+
+			for _, characteristic := range characteristics {
+				if characteristic.UUID().Equal(uartServiceTXCharId) {
+					log.Println("TX Characteristic Found")
+
+					p.DiscoverDescriptors(nil, characteristic)
+
+					p.SetNotifyValue(characteristic, onRecvMsg)
+				}
+			}
+		}
+	}
+}
+
+func onRecvMsg(c *gatt.Characteristic, b []byte, e error) {
+	if e != nil {
+		panic(e)
+	}
+	if len(b) > 4 {
+		if len(b) == 7 {
+			matched, err := regexp.Match("[[:digit:]]{2}.[[:digit:]]{2}\r\n", b)
+			if err != nil {
+				panic(err)
+			}
+			if matched {
+				fltTemp, err := strconv.ParseFloat(strings.Trim(string(b), "\r\n"), 64)
+				if err != nil {
+					panic(err)
+				}
+				log.Printf("Got back %s", string(b))
+				if fltTemp > 20 {
+					pin.High()
+				}
+			}
+		}
+	}
+}
+
+func onPeriphDisconnected(p gatt.Peripheral, err error) {
+	log.Println("Disconnected")
+	log.Println("scanning...")
+	p.Device().Scan([]gatt.UUID{}, false)
+}
+
 
 func main() {
 	if err := rpio.Open(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-
-	// Unmap gpio memory when done
 	defer rpio.Close()
-
-	// Set pin to output mode
 	pin.Output()
 
-	// Toggle pin 20 times
-	for x := 0; x < 20; x++ {
-		pin.Toggle()
-		time.Sleep(time.Second / 10)
+
+	var DefaultClientOptions = []gatt.Option{
+		gatt.LnxMaxConnections(1),
+		gatt.LnxDeviceID(-1, false),
 	}
+	log.Println("Creating new Device...")
+	d, err := gatt.NewDevice(DefaultClientOptions...)
+	if err != nil {
+		log.Fatalf("Failed to open device, err: %s\n", err)
+		return
+	}
+	log.Println("Initializing handlers...")
+	d.Handle(
+		gatt.PeripheralDiscovered(onPeriphDiscovered),
+		gatt.PeripheralConnected(onPeriphConnected),
+		gatt.PeripheralDisconnected(onPeriphDisconnected),
+	)
+	log.Println("Initializing Device...")
+	d.Init(onStateChanged)
+	<-done
+	log.Println("Done")
 }

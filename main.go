@@ -9,24 +9,17 @@ import (
 	"strconv"
 	"strings"
 	"regexp"
-	"time"
 	"encoding/csv"
+	"time"
 )
 
 
-type timeslot struct {
-	begin time.Time
-	end time.Time
-	temp int
-}
-
-
 var (
-	done = make(chan struct{})
 	pin = rpio.Pin(4)
 	uartServiceId = gatt.MustParseUUID("6e400001-b5a3-f393-e0a9-e50e24dcca9e")
 	uartServiceTXCharId = gatt.MustParseUUID("6e400003-b5a3-f393-e0a9-e50e24dcca9e")
-	schedule [7]timeslot
+	schedule [7][24]int
+	lastRecv float64
 )
 
 
@@ -43,6 +36,7 @@ func onStateChanged(d gatt.Device, s gatt.State) {
 }
 
 func onPeriphDiscovered(p gatt.Peripheral, a *gatt.Advertisement, i int) {
+	fmt.Println("Discovered:", a.LocalName, ", with strength:", i)
 	if p.ID() == "C9:6B:2C:72:BE:FA" {
 		p.Device().StopScanning()
 		p.Device().Connect(p)
@@ -78,6 +72,7 @@ func onPeriphConnected(p gatt.Peripheral, err error) {
 }
 
 func onRecvMsg(c *gatt.Characteristic, b []byte, e error) {
+	fmt.Println("New message from: ", c.Name())
 	if e != nil {
 		panic(e)
 	}
@@ -93,15 +88,16 @@ func onRecvMsg(c *gatt.Characteristic, b []byte, e error) {
 					panic(err)
 				}
 				log.Printf("Got back %s", string(b))
-				if fltTemp > 20 {
-					pin.High()
-				}
+				lastRecv = fltTemp
 			}
 		}
 	}
 }
 
 func onPeriphDisconnected(p gatt.Peripheral, err error) {
+	if err != nil {
+		log.Println(err)
+	}
 	log.Println("Disconnected")
 	log.Println("scanning...")
 	p.Device().Scan([]gatt.UUID{}, false)
@@ -129,7 +125,10 @@ func main() {
 	}
 	for hour, row := range slcCsv[1:] {
 		for day, temp := range row[1:] {
-			schedule[day].begin = time.
+			schedule[day][hour], err = strconv.Atoi(temp)
+			if err != nil {
+				panic(err)
+			}
 		}
 	}
 
@@ -152,6 +151,11 @@ func main() {
 	)
 	log.Println("Initializing Device...")
 	d.Init(onStateChanged)
-	<-done
-	log.Println("Done")
+	for {
+		if float64(schedule[time.Now().Weekday()][time.Now().Hour()]) < lastRecv {
+			pin.High()
+		} else {
+			pin.Low()
+		}
+	}
 }

@@ -157,5 +157,6 @@ func main() {
 		} else {
 			pin.Low()
 		}
+		time.Sleep(time.Minute)
 	}
 }

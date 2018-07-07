@@ -108,7 +108,10 @@ func onPeriphDisconnected(p gatt.Peripheral, err error) {
 }
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
-	t := template.New("public/index.html")
+	t, err := template.ParseFiles("public/index.html")
+	if err != nil {
+		panic(err)
+	}
 	data := struct {
 		Goal int
 		Time string

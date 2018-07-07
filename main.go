@@ -128,6 +128,7 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 		Sensor2: string(int(sensor2Temp)),
 		Sensor3: string(int(sensor3Temp)),
 	}
+	fmt.Println(data.Sensor1)
 	if int(sensor1Temp) > schedule[time.Now().Weekday()][time.Now().Hour()] {
 		data.Sensor1Color = "#f44336"
 	} else if int(sensor1Temp) == schedule[time.Now().Weekday()][time.Now().Hour()] {

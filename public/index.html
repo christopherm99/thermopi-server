@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Refresh" content="30">
+    <title>ThermoPi</title>
+    <style>
+        body {
+            background-color: #212121;
+            color: #FAFAFA;
+            display: grid;
+
+        }
+
+
+    </style>
+</head>
+<body>
+<div id="sidebar">
+    <a>Temperature Override</a>
+    <a>View Program</a>
+    <a>Settings</a>
+</div>
+<main>
+    <p id="goal">{{.Goal}}</p>
+    <p id="time">{{.Time}}</p>
+</main>
+<div id="sensors">
+    <p style="color: {{.Sensor1Color}}" id="sensor">{{.Sensor1}}</p>
+    <p style="color: {{.Sensor2Color}}" id="sensor">{{.Sensor2}}</p>
+    <p style="color: {{.Sensor3Color}}" id="sensor">{{.Sensor3}}</p>
+</div>
+</body>
+</html>

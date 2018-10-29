@@ -1,6 +1,3 @@
-[submodule "thermopi-webapp"]
-	path = thermopi-webapp
-	url = https://github.com/christopherm99/thermopi-webapp.git
 [submodule "public"]
 	path = public
 	url = https://github.com/christopherm99/thermopi-webapp.git

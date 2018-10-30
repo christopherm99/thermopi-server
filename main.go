@@ -1,169 +1,94 @@
 package main
 
 import (
-	"github.com/paypal/gatt"
-	"log"
-	"github.com/stianeikeland/go-rpio"
-	"fmt"
-	"os"
-	"strconv"
-	"strings"
-	"regexp"
 	"encoding/csv"
+	"fmt"
+	"github.com/BurntSushi/toml"
+	"github.com/labstack/echo"
+	"github.com/stianeikeland/go-rpio"
+	"log"
+	"os"
+	"path"
+	"strconv"
 	"time"
-	"net/http"
-	"html/template"
 )
 
+const (
+	pin     = rpio.Pin(4)
+	logFile = "/var/log/thermoPi/thermoPi.log"
+)
 
 var (
-	pin              = rpio.Pin(4)
-	sensor1ServiceID = gatt.MustParseUUID("6e400001-b5a3-f393-e0a9-e50e24dcca9e")
-	senor1TXCharID   = gatt.MustParseUUID("6e400003-b5a3-f393-e0a9-e50e24dcca9e")
-	schedule         [7][24]int
-	sensor1Temp      float64
-	sensor2Temp      float64
-	sensor3Temp      float64
+	target   int
+	schedule [7][24]int
+	//readings map[string]float64
+	config = struct {
+		lockout   time.Duration
+		compPin   rpio.Pin
+		fanPin    rpio.Pin
+		sensorIDs []string
+		verbosity int
+	}{
+		time.Minute,
+		rpio.Pin(0),
+		rpio.Pin(0),
+		[]string{},
+		0,
+	}
 )
 
-
-func onStateChanged(d gatt.Device, s gatt.State) {
-	//log.Println("State:", s)
-	switch s {
-	case gatt.StatePoweredOn:
-		//log.Println("scanning...")
-		d.Scan([]gatt.UUID{}, false)
-		return
-	default:
-		d.StopScanning()
+func initConfig() {
+	configFolder := os.Getenv("XDG_CONFIG_HOME")
+	if configFolder == "" {
+		logf(2, "$XDG_CONFIG_HOME unset. Using $HOME/.config as config root.")
+		configFolder = path.Join(os.Getenv("HOME"), ".config")
 	}
-}
-
-func onPeriphDiscovered(p gatt.Peripheral, a *gatt.Advertisement, i int) {
-	//fmt.Println("Discovered:", a.LocalName, ", with strength:", i)
-	if p.ID() == "C9:6B:2C:72:BE:FA" {
-		p.Device().StopScanning()
-		p.Device().Connect(p)
-	}
-}
-
-func onPeriphConnected(p gatt.Peripheral, err error) {
-	//log.Printf("%v connected.\n", p.Name())
-
-	services, err := p.DiscoverServices(nil)
+	err := os.MkdirAll(path.Join(configFolder, "thermoPi"), os.ModeDir)
 	if err != nil {
-		log.Printf("Failed to discover services, err: %s\n", err)
-		return
+		logf(-1, "Unable to create directory: %s", err)
 	}
-
-	for _, service := range services {
-		if service.UUID().Equal(sensor1ServiceID) {
-			//log.Printf("Service Found %s\n", service.Name())
-
-			characteristics, _ := p.DiscoverCharacteristics(nil, service)
-
-			for _, characteristic := range characteristics {
-				if characteristic.UUID().Equal(senor1TXCharID) {
-					//log.Println("TX Characteristic Found")
-
-					p.DiscoverDescriptors(nil, characteristic)
-
-					p.SetNotifyValue(characteristic, onRecvMsg)
-				}
-			}
+	if _, err := os.Stat(path.Join(configFolder, "/thermoPi/thermoPi.conf")); os.IsNotExist(err) {
+		f, err := os.OpenFile(path.Join(configFolder, "/thermoPi/thermoPi.conf"), os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			logf(-1, "Can't create thermoPi.conf: %s", err)
 		}
-	}
-}
-
-func onRecvMsg(c *gatt.Characteristic, b []byte, e error) {
-	//fmt.Println("New message from: ", c.Name())
-	if e != nil {
-		panic(e)
-	}
-	if len(b) > 4 {
-		if len(b) == 7 {
-			matched, err := regexp.Match("[[:digit:]]{2}.[[:digit:]]{2}\r\n", b)
-			if err != nil {
-				panic(err)
-			}
-			if matched {
-				fltTemp, err := strconv.ParseFloat(strings.Trim(string(b), "\r\n"), 64)
-				if err != nil {
-					panic(err)
-				}
-				//log.Printf("Got back %s", string(b))
-				sensor1Temp = fltTemp
-			}
+		defer f.Close()
+		if _, err := f.Write([]byte(`[thermoPi]
+lockout   = "10m"
+# compPin   = 0 # Set these values to the correct BCM pins.
+# fanPin    = 0
+# sensorIDs = [ "Kitchen", "Bedroom" ]
+verbosity = 1`)); err != nil {
+			logf(-1, "Can't write to thermoPi.conf: %s", err)
 		}
+		logf(-1, "Edit %s such that it reflects the proper values.", path.Join(configFolder, "/thermoPi/thermoPi.conf"))
 	}
-}
-
-func onPeriphDisconnected(p gatt.Peripheral, err error) {
+	var data map[string]struct {
+		Lockout   string   `toml:"lockout"`
+		CompPin   int      `toml:"compPin"`
+		FanPin    int      `toml:"fanPin"`
+		SensorIDs []string `toml:"sensorIDs"`
+		Verbosity int      `toml:"verbosity,omitempty"`
+	}
+	_, err = toml.DecodeFile(path.Join(configFolder, "/thermoPi/thermoPi.conf"), &data)
 	if err != nil {
-		log.Println(err)
+		logf(-1, "Error reading thermoPi.conf: %s", err)
 	}
-	//log.Println("Disconnected")
-	//log.Println("scanning...")
-	p.Device().Scan([]gatt.UUID{}, false)
-}
-
-func homeHandler(w http.ResponseWriter, r *http.Request) {
-	t, err := template.ParseFiles("public/index.html")
+	config.lockout, err = time.ParseDuration(data["thermoPi"].Lockout)
 	if err != nil {
-		panic(err)
+		logf(-1, "Unable to read lockout value from thermoPi.conf: %s", err)
 	}
-	data := struct {
-		Goal int
-		Time string
-		Sensor1 string
-		Sensor2 string
-		Sensor3 string
-		Sensor1Color string
-		Sensor2Color string
-		Sensor3Color string
-	}{
-		Goal:    schedule[time.Now().Weekday()][time.Now().Hour()],
-		Time:    time.Now().Format(time.Kitchen),
-	}
-	data.Sensor1 = fmt.Sprint(int(sensor1Temp))
-	data.Sensor2 = fmt.Sprint(int(sensor2Temp))
-	data.Sensor3 = fmt.Sprint(int(sensor3Temp))
-	fmt.Println(data.Sensor1)
-	if int(sensor1Temp) > schedule[time.Now().Weekday()][time.Now().Hour()] {
-		data.Sensor1Color = "#f44336"
-	} else if int(sensor1Temp) == schedule[time.Now().Weekday()][time.Now().Hour()] {
-		data.Sensor1Color = "#FF9800"
-	} else {
-		data.Sensor1Color = "#2196F3"
-	}
-	if int(sensor2Temp) > schedule[time.Now().Weekday()][time.Now().Hour()] {
-		data.Sensor2Color = "#f44336"
-	} else if int(sensor2Temp) == schedule[time.Now().Weekday()][time.Now().Hour()] {
-		data.Sensor2Color = "#FF9800"
-	} else {
-		data.Sensor2Color = "#2196F3"
-	}
-	if int(sensor3Temp) > schedule[time.Now().Weekday()][time.Now().Hour()] {
-		data.Sensor3Color = "#f44336"
-	} else if int(sensor3Temp) == schedule[time.Now().Weekday()][time.Now().Hour()] {
-		data.Sensor3Color = "#FF9800"
-	} else {
-		data.Sensor3Color = "#2196F3"
-	}
-	t.Execute(w, data)
+	logf(3, "The timeout is set to %s", config.lockout)
+	config.compPin = rpio.Pin(data["thermoPi"].CompPin)
+	logf(3, "The compressor pin is set to %s", config.compPin)
+	config.fanPin = rpio.Pin(data["thermoPi"].FanPin)
+	logf(3, "The fan pin is set to %s", config.fanPin)
+	config.sensorIDs = data["thermoPi"].SensorIDs
+	logf(3, "The list of sensor IDs is: %v", config.sensorIDs)
+	config.verbosity = data["thermoPi"].Verbosity
 }
 
-
-func main() {
-	// === RASPBERRY PI GPIO ===
-	if err := rpio.Open(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	defer rpio.Close()
-	pin.Output()
-
-	// === IMPORTING SCHEDULE ===
+func initSchedule() {
 	file, err := os.Open("schedule.csv")
 	if err != nil {
 		panic(err)
@@ -182,33 +107,75 @@ func main() {
 		}
 	}
 
-	// === BLUETOOTH LOW ENERGY CONNECTIONS ===
-	var DefaultClientOptions = []gatt.Option{
-		gatt.LnxMaxConnections(1),
-		gatt.LnxDeviceID(-1, false),
-	}
-	//log.Println("Creating new Device...")
-	d, err := gatt.NewDevice(DefaultClientOptions...)
-	if err != nil {
-		log.Fatalf("Failed to open device, err: %s\n", err)
-		return
-	}
-	//log.Println("Initializing handlers...")
-	d.Handle(
-		gatt.PeripheralDiscovered(onPeriphDiscovered),
-		gatt.PeripheralConnected(onPeriphConnected),
-		gatt.PeripheralDisconnected(onPeriphDisconnected),
-	)
-	//log.Println("Initializing Device...")
-	d.Init(onStateChanged)
-	http.HandleFunc("/", homeHandler)
-	http.ListenAndServe(":8080", nil)
-	for {
-		if float64(schedule[time.Now().Weekday()][time.Now().Hour()]) > sensor1Temp- 5 {
-			pin.High() // Switched because the relay doesn't work.
-		} else if float64(schedule[time.Now().Weekday()][time.Now().Hour()]) > sensor1Temp+ 5 {
-			pin.Low()
+	target = schedule[time.Now().Weekday()][time.Now().Hour()]
+
+	tick := time.NewTicker(time.Hour)
+	go func() {
+		for {
+			t := <-tick.C
+			target = schedule[t.Weekday()][t.Hour()]
 		}
-		time.Sleep(time.Minute)
+	}()
+}
+
+func initGPIO() {
+	if err := rpio.Open(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
 	}
+	pin.Output()
+}
+
+func initEcho() {
+	e := echo.New()
+	/* API:
+	 * NOTE: All temperatures will be in centigrade.
+	 *
+	 * /target      GET  - Get current target temperature for this time slot.
+	 *   Response Format Example:
+	 *     { "target":25 }
+	 *
+	 * /target      POST - Set current target temperature for this time slot.
+	 *   Request Format: A POST request with the following parameters:
+	 *     target    - The new target temperature
+	 *     permanent - Whether this change ought to be updated in the permanent schedule.
+	 *                 Defaults to off.
+	 *   Possible Responses:
+	 *     202 - The POST request was accepted and will be reflected soon.
+	 *     400 - The POST request is malformed (eg. too large a value) and will not be reflected.
+	 *     5xx - The POST request was valid, but the server had an error.
+	 *
+	 * /sensors     GET  - Get list of active sensors' ids.
+	 *   Response Format Example:
+	 *     [
+	 *       "Bedroom",
+	 *       "Kitchen",
+	 *       "Living Room"
+	 *     ]
+	 *
+	 * /sensors/:id GET  - Get most recent temperature reading from :id sensor.
+	 *   Response Format Example:
+	 *     { "value":22 }
+	 *
+	 * /sensors/:id POST - Receive data from :id sensor. (NB: This will probably be replaced with MQTT in the future).
+	 *   Request Format: A POST request with the following parameters:
+	 *     value - The most recent temperature reading from the sensor.
+	 *
+	 */
+	e.GET("/target", getTarget)
+	e.POST("/target", postTarget)
+	e.GET("/sensors", getSensors)
+	e.POST("/sensors", postSensors)
+}
+
+func main() {
+	if err := os.Remove(logFile); err != nil {
+		log.Fatalln(err)
+	}
+	logf(1, "Message Key: (EE) - Error, (WW) - Warning, (II) - Information, (DD) - Debug, (VV) - Verbose")
+	initConfig()
+	initSchedule()     // Read schedule from CSV and start target loop.
+	initGPIO()         // Setup Raspberry Pi's GPIO pins for access and begin thermostat logic.
+	defer rpio.Close() // Remember to close Raspberry Pi's GPIO pins when done.
+	initEcho()         // Setup Echo web server.
 }

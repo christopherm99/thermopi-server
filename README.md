@@ -86,11 +86,11 @@ NOTE: All temperatures should be in centigrade.
     ```json
     [
       {
-        "Name":"Bedroom", 
+        "name":"Bedroom", 
         "value":23
       },
       {
-        "Name":"Kitchen", 
+        "name":"Kitchen", 
         "value":3
       }
     ]

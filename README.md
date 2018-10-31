@@ -16,7 +16,7 @@ code.
 Ensure you have at least [Golang 1.11](https://golang.org/) and [NodeJS v11](https://nodejs.org/) installed. 
 Then run this on the server:
 ```bash
-git clone --recurse-submodules https://github.com/christopherm99/thermopi-server.git thermopi
+git clone https://github.com/christopherm99/thermopi-server.git thermopi
 cd thermopi
 [sudo] ./install.sh
 ```
@@ -104,4 +104,5 @@ NOTE: All temperatures should be in centigrade.
   * Note: This will probably be replaced with MQTT in the future.
 ### Server Modularity:
 The Golang server does not require the Vue.js webapp to be served, and anything could be served by the Echo server, in
-theory. To serve different files, 
+theory. To serve different files, select no when prompted by `install.sh` to install the default webapp and place your 
+`index.html` in `/usr/share/thermoPi/dist/`.

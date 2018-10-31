@@ -81,13 +81,18 @@ NOTE: All temperatures should be in centigrade.
     * 202 - The POST request was accepted and will be reflected soon.
     * 400 - The POST request is malformed (eg. too large a value) and will not be reflected.
     * 5xx - The POST request was valid, but the server had an error.
-* GET /sensors: Get list of active sensors' ids.
+* GET /sensors: Get list of active sensors' ids and values.
   * Response Format Example:
     ```json
     [
-      "Bedroom",
-      "Kitchen",
-      "Living Room"
+      {
+        "Name":"Bedroom", 
+        "value":23
+      },
+      {
+        "Name":"Kitchen", 
+        "value":3
+      }
     ]
     ```
 * GET /sensors/{id}: Get most recent temperature reading from {id} sensor.

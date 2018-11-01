@@ -13,3 +13,6 @@
 
 # Jetbrains IDE folder
 .idea/
+
+# .DS_Store files from macOS
+.DS_Store

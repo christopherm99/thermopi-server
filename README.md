@@ -62,7 +62,7 @@ To run the server, first install it, as explained in the Installation section. T
 a file to run (/usr/local/bin in most cases). Run this to start the server.
 ## Extensibility
 ### API Specification
-NOTE: All temperatures should be in centigrade.
+NOTE: All temperatures should be in celsius.
 #### For Frontend Development:
 * GET /target: Get current target temperature for this time slot.
   *  Response Format Example:

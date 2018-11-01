@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/BurntSushi/toml"
 	"github.com/labstack/echo"
+	"github.com/labstack/echo/middleware"
 	"github.com/stianeikeland/go-rpio"
 	"log"
 	"os"
@@ -14,36 +15,33 @@ import (
 )
 
 const (
-	pin     = rpio.Pin(4)
 	logFile = "/var/log/thermoPi/thermoPi.log"
 )
 
 var (
-	target   int
-	schedule [7][24]int
-	//readings map[string]float64
-	config = struct {
+	target   int                        // The target temperature for the thermostat to reach
+	schedule [7][24]int                 // The parsed schedule from the CSV
+	readings = make(map[string]float64) // The most recent readings from the sensors (eg. readings["Bedroom"] = 26)
+	config   = struct {
 		lockout   time.Duration
 		compPin   rpio.Pin
 		fanPin    rpio.Pin
-		sensorIDs []string
 		verbosity int
 	}{
 		time.Minute,
 		rpio.Pin(0),
 		rpio.Pin(0),
-		[]string{},
-		0,
+		3,
 	}
 )
 
 func initConfig() {
 	configFolder := os.Getenv("XDG_CONFIG_HOME")
 	if configFolder == "" {
-		logf(2, "$XDG_CONFIG_HOME unset. Using $HOME/.config as config root.")
+		logf(2, "$XDG_CONFIG_HOME unset. Using %s/.config as config root.", os.Getenv("HOME"))
 		configFolder = path.Join(os.Getenv("HOME"), ".config")
 	}
-	err := os.MkdirAll(path.Join(configFolder, "thermoPi"), os.ModeDir)
+	err := os.MkdirAll(path.Join(configFolder, "thermoPi"), 0770)
 	if err != nil {
 		logf(-1, "Unable to create directory: %s", err)
 	}
@@ -80,11 +78,9 @@ verbosity = 1`)); err != nil {
 	}
 	logf(3, "The timeout is set to %s", config.lockout)
 	config.compPin = rpio.Pin(data["thermoPi"].CompPin)
-	logf(3, "The compressor pin is set to %s", config.compPin)
+	logf(3, "The compressor pin is set to %d", config.compPin)
 	config.fanPin = rpio.Pin(data["thermoPi"].FanPin)
-	logf(3, "The fan pin is set to %s", config.fanPin)
-	config.sensorIDs = data["thermoPi"].SensorIDs
-	logf(3, "The list of sensor IDs is: %v", config.sensorIDs)
+	logf(3, "The fan pin is set to %d", config.fanPin)
 	config.verbosity = data["thermoPi"].Verbosity
 }
 
@@ -118,64 +114,50 @@ func initSchedule() {
 	}()
 }
 
+/*
 func initGPIO() {
 	if err := rpio.Open(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		logf(-1, "Error opening GPIO: %s", err)
 	}
-	pin.Output()
+	config.fanPin.Output()
+	config.compPin.Output()
 }
+*/
 
 func initEcho() {
 	e := echo.New()
-	/* API:
-	 * NOTE: All temperatures will be in centigrade.
-	 *
-	 * /target      GET  - Get current target temperature for this time slot.
-	 *   Response Format Example:
-	 *     { "target":25 }
-	 *
-	 * /target      POST - Set current target temperature for this time slot.
-	 *   Request Format: A POST request with the following parameters:
-	 *     target    - The new target temperature
-	 *     permanent - Whether this change ought to be updated in the permanent schedule.
-	 *                 Defaults to off.
-	 *   Possible Responses:
-	 *     202 - The POST request was accepted and will be reflected soon.
-	 *     400 - The POST request is malformed (eg. too large a value) and will not be reflected.
-	 *     5xx - The POST request was valid, but the server had an error.
-	 *
-	 * /sensors     GET  - Get list of active sensors' ids.
-	 *   Response Format Example:
-	 *     [
-	 *       "Bedroom",
-	 *       "Kitchen",
-	 *       "Living Room"
-	 *     ]
-	 *
-	 * /sensors/:id GET  - Get most recent temperature reading from :id sensor.
-	 *   Response Format Example:
-	 *     { "value":22 }
-	 *
-	 * /sensors/:id POST - Receive data from :id sensor. (NB: This will probably be replaced with MQTT in the future).
-	 *   Request Format: A POST request with the following parameters:
-	 *     value - The most recent temperature reading from the sensor.
-	 *
-	 */
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: []string{"*"},
+		AllowMethods: []string{echo.GET, echo.HEAD, echo.PUT, echo.PATCH, echo.POST, echo.DELETE},
+	}))
+	// API
 	e.GET("/target", getTarget)
 	e.POST("/target", postTarget)
 	e.GET("/sensors", getSensors)
 	e.POST("/sensors", postSensors)
+	// Webapp
+	e.File("/", "/usr/share/thermoPi/dist/index.html")
+	e.Static("/", "/usr/share/thermoPi/dist/")
+	logf(-1, "Error within Echo: %s", e.Start(":8080"))
 }
 
 func main() {
-	if err := os.Remove(logFile); err != nil {
-		log.Fatalln(err)
+	// DEBUG STUFF
+	readings["Bedroom"] = 20
+	readings["Kitchen"] = 30
+
+	if _, err := os.Stat(logFile); !os.IsNotExist(err) {
+		if err := os.Remove(logFile); err != nil {
+			fmt.Println("Printing on line 146")
+			log.Fatalln(err)
+		}
 	}
-	logf(1, "Message Key: (EE) - Error, (WW) - Warning, (II) - Information, (DD) - Debug, (VV) - Verbose")
+	fmt.Println("Message Key: (EE) - Error, (WW) - Warning, (II) - Information, (DD) - Debug, (VV) - Verbose")
+	time.Sleep(100 * time.Millisecond)
 	initConfig()
-	initSchedule()     // Read schedule from CSV and start target loop.
-	initGPIO()         // Setup Raspberry Pi's GPIO pins for access and begin thermostat logic.
+	initSchedule() // Read schedule from CSV and start target loop.
+	//initGPIO()         // Setup Raspberry Pi's GPIO pins for access and begin thermostat logic.
 	defer rpio.Close() // Remember to close Raspberry Pi's GPIO pins when done.
-	initEcho()         // Setup Echo web server.
+	time.Sleep(time.Millisecond)
+	initEcho() // Setup Echo web server.
 }

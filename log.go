@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path"
 )
 
 func color(s string, c int) string {
@@ -29,22 +30,29 @@ func color(s string, c int) string {
 func logf(level int, format string, a ...interface{}) {
 	var message string
 	if level == -1 {
-		log.Fatalln(color("(EE) "+fmt.Sprintf(format, a), level))
+		log.Fatalln(color("(EE) "+fmt.Sprintf(format, a...), level))
 	} else if level <= config.verbosity {
 		switch level {
 		case 0:
-			message = "(WW) " + fmt.Sprintf(format, a)
+			message = "(WW) " + fmt.Sprintf(format, a...)
+			log.Println(color(message, level))
 		case 1:
-			message = "(II) " + fmt.Sprintf(format, a)
+			message = "(II) " + fmt.Sprintf(format, a...)
+			log.Println(color(message, level))
 		case 2:
-			message = "(DD) " + fmt.Sprintf(format, a)
+			message = "(DD) " + fmt.Sprintf(format, a...)
+			log.Println(color(message, level))
 		case 3:
-			message = "(VV) " + fmt.Sprintf(format, a)
+			message = "(VV) " + fmt.Sprintf(format, a...)
+			log.Println(color(message, level))
 		default:
-			logf(1, format, a)
+			logf(1, format, a...)
 		}
 	}
-	log.Println(color(message, level))
+	err := os.MkdirAll(path.Dir(logFile), os.ModeDir)
+	if err != nil {
+		logf(-1, "Error creating directory: %s", err)
+	}
 	f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		logf(0, "%s", err)

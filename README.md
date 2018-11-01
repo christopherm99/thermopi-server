@@ -68,7 +68,7 @@ NOTE: All temperatures should be in celsius.
   *  Response Format Example:
      ```json
      { 
-       "target":25 
+       "value":25 
      }
      ```
 * POST /target: Set current target temperature for this time slot.

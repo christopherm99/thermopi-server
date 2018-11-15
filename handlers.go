@@ -72,7 +72,7 @@ func postTarget(c echo.Context) error {
 	if m.Permanent {
 		setTarget(target)
 	}
-	logf(2, "Responding to POST /target from %", r.Referer())
+	logf(2, "Responding to POST /target from %s", r.Referer())
 	return c.String(http.StatusAccepted, "Accepted")
 }
 

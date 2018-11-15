@@ -3,7 +3,9 @@ language: go
 go: master
 
 before_script:
+  - mkdir -p /home/travis/.cache/thermoPi/
   - touch /home/travis/.cache/thermoPi/thermoPi.log
+  - mkdir -p /home/travis/.config/thermoPi/
   - cp sample.conf /home/travis/.config/thermoPi/thermoPi.conf
 
 script: go test -v ./...

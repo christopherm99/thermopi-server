@@ -38,7 +38,6 @@ import (
 	"encoding/json"
 	"github.com/labstack/echo"
 	"net/http"
-	"strconv"
 )
 
 func getTarget(c echo.Context) error {
@@ -70,16 +69,10 @@ func postTarget(c echo.Context) error {
 		logf(3, "Data: %v", m.Target)
 	}
 	target = m.Target
-	t, err = dec.Token()
-	if err != nil {
-		return err
+	if m.Permanent {
+		setTarget(target)
 	}
-	logf(3, "%T: %v\n", t, t)
 	logf(2, "Responding to POST /target from %", r.Referer())
-	target, err = strconv.Atoi(c.FormValue("target"))
-	if err != nil {
-		logf(0, "Error parsing new target data: %s", err)
-	}
 	return c.String(http.StatusAccepted, "Accepted")
 }
 

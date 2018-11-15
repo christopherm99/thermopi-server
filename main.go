@@ -151,4 +151,5 @@ func main() {
 	defer rpio.Close() // Remember to close Raspberry Pi's GPIO pins when done.
 	time.Sleep(time.Millisecond)
 	initEcho() // Setup Echo web server.
+	beginLogic()
 }

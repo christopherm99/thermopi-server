@@ -6,4 +6,4 @@ before_script:
   - touch /home/travis/.cache/thermoPi/thermoPi.log
   - cp sample.conf /home/travis/.config/thermoPi/thermoPi.conf
 
-script: go test -v
+script: go test -v ./...

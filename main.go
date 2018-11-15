@@ -14,11 +14,8 @@ import (
 	"time"
 )
 
-const (
-	logFile = "/var/log/thermoPi/thermoPi.log"
-)
-
 var (
+	logFile  = path.Join(os.Getenv("HOME"), "/.cache/thermoPi/thermoPi.log")
 	target   int                        // The target temperature for the thermostat to reach
 	schedule [7][24]int                 // The parsed schedule from the CSV
 	readings = make(map[string]float64) // The most recent readings from the sensors (eg. readings["Bedroom"] = 26)

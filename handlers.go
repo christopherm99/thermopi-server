@@ -1,43 +1,11 @@
-/* API:
- * NOTE: All temperatures will be in centigrade.
- *
- * /target      GET  - Get current target temperature for this time slot.
- *   Response Format Example:
- *     { "target":25 }
- *
- * /target      POST - Set current target temperature for this time slot.
- *   Request Format: A POST request with the following parameters:
- *     target    - The new target temperature
- *     permanent - Whether this change ought to be updated in the permanent schedule.
- *                 Defaults to off.
- *   Possible Responses:
- *     202 - The POST request was accepted and will be reflected soon.
- *     400 - The POST request is malformed (eg. too large a value) and will not be reflected.
- *     5xx - The POST request was valid, but the server had an error.
- *
- * /sensors     GET  - Get list of active sensors' ids.
- *   Response Format Example:
- *     [
- *       "Bedroom",
- *       "Kitchen",
- *       "Living Room"
- *     ]
- *
- * /sensors/:id GET  - Get most recent temperature reading from :id sensor.
- *   Response Format Example:
- *     { "value":22 }
- *
- * /sensors/:id POST - Receive data from :id sensor. (NB: This will probably be replaced with MQTT in the future).
- *   Request Format: A POST request with the following parameters:
- *     value - The most recent temperature reading from the sensor.
- *
- */
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"github.com/labstack/echo"
 	"net/http"
+	"strconv"
 )
 
 func getTarget(c echo.Context) error {
@@ -48,25 +16,20 @@ func getTarget(c echo.Context) error {
 	return c.JSON(http.StatusOK, data)
 }
 
+// TODO: Clean up this messy code. It is definitely inefficient and also very hard to read.
 func postTarget(c echo.Context) error {
-	var err error
 	r := c.Request()
-	dec := json.NewDecoder(r.Body)
-	t, err := dec.Token()
-	if err != nil {
-		return err
-	}
-	logf(3, "%T: %v\n", t, t)
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(r.Body)
+	logf(3, "Data POSTed to /target: %s", buf.String())
 	var m struct {
 		Target    int  `json:"target"`
 		Permanent bool `json:"permanent"`
 	}
-	for dec.More() {
-		err := dec.Decode(&m)
-		if err != nil {
-			return err
-		}
-		logf(3, "Data: %v", m.Target)
+	logf(3, "Now decoding POSTed data...")
+	err := json.Unmarshal(buf.Bytes(), &m)
+	if err != nil {
+		logf(2, "Error parsing POST to /target: %s", err)
 	}
 	target = m.Target
 	if m.Permanent {
@@ -82,6 +45,7 @@ func getSensors(c echo.Context) error {
 		Temp float64 `json:"value"`
 	}, len(readings))
 	i := 0
+	logf(3, "Current sensor readings: %v", readings)
 	for k, v := range readings {
 		data[i].Name = k
 		data[i].Temp = v
@@ -101,5 +65,10 @@ func getSensorByID(c echo.Context) error {
 }
 
 func postSensors(c echo.Context) error {
+	val, err := strconv.ParseFloat(c.FormValue("value"), 64)
+	if err != nil {
+		logf(2, "Error parsing sensor data in /sensors: %s", err)
+	}
+	readings[c.Param("id")] = val
 	return c.JSON(http.StatusAccepted, "POST sensors")
 }

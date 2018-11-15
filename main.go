@@ -125,7 +125,7 @@ func initEcho() {
 	e.POST("/target", postTarget)
 	e.GET("/sensors", getSensors)
 	e.GET("/sensors/:id", getSensorByID)
-	e.POST("/sensors", postSensors)
+	e.POST("/sensors/:id", postSensors)
 	// Webapp
 	e.File("/", "/usr/share/thermoPi/dist/index.html")
 	e.Static("/", "/usr/share/thermoPi/dist/")

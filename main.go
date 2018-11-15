@@ -114,16 +114,6 @@ func initSchedule() {
 	}()
 }
 
-/*
-func initGPIO() {
-	if err := rpio.Open(); err != nil {
-		logf(-1, "Error opening GPIO: %s", err)
-	}
-	config.fanPin.Output()
-	config.compPin.Output()
-}
-*/
-
 func initEcho() {
 	e := echo.New()
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
@@ -134,6 +124,7 @@ func initEcho() {
 	e.GET("/target", getTarget)
 	e.POST("/target", postTarget)
 	e.GET("/sensors", getSensors)
+	e.GET("/sensors/:id", getSensorByID)
 	e.POST("/sensors", postSensors)
 	// Webapp
 	e.File("/", "/usr/share/thermoPi/dist/index.html")

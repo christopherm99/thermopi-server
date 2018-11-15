@@ -73,9 +73,11 @@ NOTE: All temperatures should be in celsius.
      ```
 * POST /target: Set current target temperature for this time slot.
   * Request Format: A POST request with the following parameters:
-    ```
-    target    - The new target temperature
-    permanent - Whether this change ought to be updated in the permanent schedule. Defaults to off.
+    ```json
+    {
+      "value":25,
+      "persistent":true
+    }
     ```
   * Possible Responses:
     * 202 - The POST request was accepted and will be reflected soon.

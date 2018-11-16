@@ -1,9 +1,11 @@
 language: go
 
-go: master
+go: "1.11"
 
 before_install:
   - go get github.com/mattn/goveralls
+  - curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+  - dep ensure
 
 before_script:
   - mkdir -p /home/travis/.cache/thermoPi/

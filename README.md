@@ -1,4 +1,7 @@
 # ThermoPi
+[![Go Report Card](https://goreportcard.com/badge/github.com/christopherm99/thermopi-server)](https://goreportcard.com/report/github.com/christopherm99/thermopi-server)
+[![Build Status](https://travis-ci.org/christopherm99/thermopi-server.svg?branch=master)](https://travis-ci.org/christopherm99/thermopi-server)
+
 ThermoPi is attempt to make a simple, extensible, and powerful thermostat framework for the Raspberry Pi. The backend is
 written in Golang, using Echo to power the server, and Stianeikeland's go-rpio library to control the Raspberry Pi's
 GPIO pins. The frontend is written using Vue.js and TypeScript, and can be found 

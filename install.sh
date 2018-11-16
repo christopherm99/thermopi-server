@@ -22,6 +22,9 @@ case $yn in
     * ) install_vue;;
 esac
 
+echo "Installing backend dependencies"
+dep ensure
+
 echo "Installing Golang backend..."
 go install -i /usr/local/bin
 

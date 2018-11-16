@@ -13,3 +13,9 @@
 
 # Jetbrains IDE folder
 .idea/
+
+# Go dep vendor folder
+vendor/
+
+# Gox files folder
+cmd/

@@ -1,8 +1,23 @@
-# ThermoPi
+# ThermoPi 
 [![Travis (.org)](https://img.shields.io/travis/christopherm99/thermopi-server.svg?style=for-the-badge)](https://travis-ci.org/christopherm99/thermopi-server)
 [![GitHub](https://img.shields.io/github/license/christopherm99/thermopi-server.svg?style=for-the-badge)](https://github.com/christopherm99/thermopi-server/blob/master/LICENSE)
 [![Coveralls github](https://img.shields.io/coveralls/github/christopherm99/thermopi-server.svg?style=for-the-badge)](https://coveralls.io/github/christopherm99/thermopi-server)
-
+ * [Description](#description)
+ * [Hardware](#hardware)
+ * [Installation](#installation)
+    * [Arduino Code](#arduino-code)
+ * [Configuration](#configuration)
+    * [Lockout Setting](#lockout-setting)
+    * [Pin Settings](#pin-settings)
+    * [Verbosity Settings](#verbosity-settings)
+ * [Running](#running)
+ * [Development](#development)
+    * [Installation for Development](#contributing)
+    * [API Specification](#api-specification)
+        * [Frontend Development](#for-frontend-development)
+        * [Backend Development](#for-sensor-development)
+    * [Server Modularity](#server-modularity)
+## Description
 ThermoPi is attempt to make a simple, extensible, and powerful thermostat framework for the Raspberry Pi. The backend is
 written in Golang, using Echo to power the server, and Stianeikeland's go-rpio library to control the Raspberry Pi's
 GPIO pins. The frontend is written using Vue.js and TypeScript, and can be found 
@@ -17,7 +32,10 @@ code for the peripheral sensors has been designed to run on the Arduino MKR 1010
 Both of these systems can likely be switched out with alternatives, provided there is some tweaking of the respective
 code.
 ## Installation
-Ensure you have at least [Golang 1.11](https://golang.org/) and [NodeJS v11](https://nodejs.org/) installed. 
+If you are looking to find out how to contribute to thermoPi, see [here](#contributing).
+
+Ensure you have at least [Golang 1.11](https://golang.org/) and [Dep](https://github.com/golang/dep) installed. For the 
+default frontend, also install at least [Node v11](https://nodejs.org).
 Then run this on the server:
 ```bash
 git clone https://github.com/christopherm99/thermopi-server.git thermopi
@@ -64,7 +82,16 @@ For the compressor and fan pin values, see [this](https://pinout.xyz/) diagram t
 ## Running
 To run the server, first install it, as explained in the Installation section. The output of install.sh should give you
 a file to run (/usr/local/bin in most cases). Run this to start the server.
-## Extensibility
+## Development
+### Contributing
+For contributors, the process of setting up the repository is more complicated. However, one must still ensure they have
+at least [Golang 1.11](https://golang.org/) and [Dep](https://github.com/golang/dep) installed. Then run the following 
+from your ${GOPATH}/src directory:
+```bash
+git clone https://github.com/christopherm99/thermopi-server.git
+dep ensure
+```
+The repository will now be set up for development.
 ### API Specification
 NOTE: All temperatures should be in celsius.
 #### For Frontend Development:

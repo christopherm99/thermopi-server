@@ -49,9 +49,9 @@ func logf(level int, format string, a ...interface{}) {
 			logf(1, format, a...)
 		}
 	}
-	err := os.MkdirAll(path.Dir(logFile), os.ModeDir)
+	err := os.MkdirAll(path.Dir(logFile), 0770)
 	if err != nil {
-		logf(-1, "Error creating directory: %s", err)
+		logf(-1, "Cannot create log directory: %s", err)
 	}
 	f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {

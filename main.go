@@ -49,23 +49,23 @@ func initConfig() {
 	if err != nil {
 		logf(-1, "Cannot create configuration directory: %s", err)
 	}
-	if _, err := os.Stat(path.Join(configFolder, "/thermoPi/thermoPi.conf")); os.IsNotExist(err) {
-		f, err := os.OpenFile(path.Join(configFolder, "/thermoPi/thermoPi.conf"), os.O_CREATE|os.O_WRONLY, 0644)
+	if _, err := os.Stat(path.Join(configFolder, "/thermoPi/thermoPi.toml")); os.IsNotExist(err) {
+		f, err := os.OpenFile(path.Join(configFolder, "/thermoPi/thermoPi.toml"), os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
-			logf(-1, "Cannot create thermoPi.conf: %s", err)
+			logf(-1, "Cannot create thermoPi.toml: %s", err)
 		}
 		defer func() {
 			err := f.Close()
 			if err != nil {
-				logf(-1, "Cannot close thermoPi.conf: %s", err)
+				logf(-1, "Cannot close thermoPi.toml: %s", err)
 			}
 		}()
 		if _, err := f.Write(defaultConfig); err != nil {
-			logf(-1, "Cannot write to thermoPi.conf: %s", err)
+			logf(-1, "Cannot write to thermoPi.toml: %s", err)
 		}
-		logf(-1, "Exiting... Edit %s such that it reflects the proper values.", path.Join(configFolder, "/thermoPi/thermoPi.conf"))
+		logf(-1, "Exiting... Edit %s such that it reflects the proper values.", path.Join(configFolder, "/thermoPi/thermoPi.toml"))
 	} else if err != nil {
-		logf(-1, "Cannot stat thermoPi.conf: %s", err)
+		logf(-1, "Cannot stat thermoPi.toml: %s", err)
 	}
 	// Temporary data holder
 	var data map[string]struct {
@@ -78,9 +78,9 @@ func initConfig() {
 		Logs      bool   `toml:"persistentLogs"`
 	}
 	// Decoding configuration
-	_, err = toml.DecodeFile(path.Join(configFolder, "/thermoPi/thermoPi.conf"), &data)
+	_, err = toml.DecodeFile(path.Join(configFolder, "/thermoPi/thermoPi.toml"), &data)
 	if err != nil {
-		logf(-1, "Cannot read thermoPi.conf: %s", err)
+		logf(-1, "Cannot read thermoPi.toml: %s", err)
 	}
 	// Setup log files.
 	if data["thermoPi"].Logs {
@@ -96,7 +96,7 @@ func initConfig() {
 	// Setup config values
 	config.lockout, err = time.ParseDuration(data["thermoPi"].Lockout)
 	if err != nil {
-		logf(-1, "Cannot read lockout value from thermoPi.conf: %s", err)
+		logf(-1, "Cannot read lockout value from thermoPi.toml: %s", err)
 	}
 	logf(3, "The timeout is set to %s", config.lockout)
 	config.compPin = rpio.Pin(data["thermoPi"].CompPin)

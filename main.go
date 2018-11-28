@@ -14,28 +14,27 @@ import (
 )
 
 var (
-	logFile  = path.Join(os.Getenv("HOME"), "/.cache/thermoPi/thermoPi.log")
-	target   int                        // The target temperature for the thermostat to reach
-	schedule [7][24]int                 // The parsed schedule from the CSV
-	readings = make(map[string]float64) // The most recent readings from the sensors (eg. readings["Bedroom"] = 26)
-	config   = struct {
+	logFile      string
+	scheduleFile string
+	target       int                        // The target temperature for the thermostat to reach
+	schedule     [7][24]int                 // The parsed schedule from the CSV
+	readings     = make(map[string]float64) // The most recent readings from the sensors (eg. readings["Bedroom"] = 26)
+	config       struct {
 		lockout   time.Duration
 		compPin   rpio.Pin
 		fanPin    rpio.Pin
 		verbosity int
-	}{
-		time.Minute,
-		rpio.Pin(0),
-		rpio.Pin(0),
-		3,
+		cors      bool
 	}
 	defaultConfig = []byte(`
 [thermoPi]
-lockout   = "10m"
-# compPin   = 0 # Set these values to the correct BCM pins.
-# fanPin    = 0
-# sensorIDs = [ "Kitchen", "Bedroom" ]
-verbosity = 1
+lockout   = "10m" # Set this to amount of time to lockout between turning the A/C on and off.
+compPin   = 0     # Set this and the following values to the correct BCM pins.
+fanPin    = 0
+verbosity = 1	  # Set this to the desired verbosity level (see README.md).
+schedule  = "~/.config/thermoPi/" # Set this to your schedule.csv location.
+CORS	  = false # Set this true to enable CORS (if you are hosting an external website).
+keepLogs  = false # Set this to tell thermoPi to save old logs.
 `)
 )
 
@@ -45,6 +44,7 @@ func initConfig() {
 		logf(2, "$XDG_CONFIG_HOME unset. Using %s/.config as config root.", os.Getenv("HOME"))
 		configFolder = path.Join(os.Getenv("HOME"), ".config")
 	}
+	// Create configuration files if nonexistent
 	err := os.MkdirAll(path.Join(configFolder, "thermoPi"), 0770)
 	if err != nil {
 		logf(-1, "Cannot create configuration directory: %s", err)
@@ -67,17 +67,33 @@ func initConfig() {
 	} else if err != nil {
 		logf(-1, "Cannot stat thermoPi.conf: %s", err)
 	}
+	// Temporary data holder
 	var data map[string]struct {
-		Lockout   string   `toml:"lockout"`
-		CompPin   int      `toml:"compPin"`
-		FanPin    int      `toml:"fanPin"`
-		SensorIDs []string `toml:"sensorIDs"`
-		Verbosity int      `toml:"verbosity,omitempty"`
+		Lockout   string `toml:"lockout"`
+		CompPin   int    `toml:"compPin"`
+		FanPin    int    `toml:"fanPin"`
+		Verbosity int    `toml:"verbosity"`
+		Schedule  string `toml:"schedule"`
+		CORS      bool   `toml:"CORS"`
+		Logs      bool   `toml:"persistentLogs"`
 	}
+	// Decoding configuration
 	_, err = toml.DecodeFile(path.Join(configFolder, "/thermoPi/thermoPi.conf"), &data)
 	if err != nil {
 		logf(-1, "Cannot read thermoPi.conf: %s", err)
 	}
+	// Setup log files.
+	if data["thermoPi"].Logs {
+		logFile = fmt.Sprintf("%s-%d.log", path.Join(os.Getenv("HOME"), "/.cache/thermoPi/thermoPi"), time.Now().Unix())
+	} else {
+		logFile = path.Join(os.Getenv("HOME"), "/.cache/thermoPi/thermoPi.log")
+		if _, err := os.Stat(logFile); !os.IsNotExist(err) {
+			if err := os.Remove(logFile); err != nil {
+				logf(-1, "Cannot delete old logs: %s", err)
+			}
+		}
+	}
+	// Setup config values
 	config.lockout, err = time.ParseDuration(data["thermoPi"].Lockout)
 	if err != nil {
 		logf(-1, "Cannot read lockout value from thermoPi.conf: %s", err)
@@ -87,12 +103,18 @@ func initConfig() {
 	logf(3, "The compressor pin is set to %d", config.compPin)
 	config.fanPin = rpio.Pin(data["thermoPi"].FanPin)
 	logf(3, "The fan pin is set to %d", config.fanPin)
+	config.cors = data["thermoPi"].CORS
+	if config.cors {
+		logf(2, "CORS is enabled")
+	}
 	config.verbosity = data["thermoPi"].Verbosity
+	// Setup schedule location
+	scheduleFile = data["thermoPi"].Schedule
+	logf(3, "The schedule file is set to %s", scheduleFile)
 }
 
 func initSchedule() {
-	// TODO: Schedule's location should be set in configuration.
-	file, err := os.Open("schedule.csv")
+	file, err := os.Open(scheduleFile)
 	if err != nil {
 		logf(-1, "Cannot open schedule.csv: %s", err)
 	}
@@ -124,11 +146,12 @@ func initSchedule() {
 
 func initEcho() {
 	e := echo.New()
-	// TODO: Support for CORS should be added as a configuration option
-	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{"*"},
-		AllowMethods: []string{echo.GET, echo.HEAD, echo.PUT, echo.PATCH, echo.POST, echo.DELETE},
-	}))
+	if config.cors {
+		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+			AllowOrigins: []string{"*"},
+			AllowMethods: []string{echo.GET, echo.HEAD, echo.PUT, echo.PATCH, echo.POST, echo.DELETE},
+		}))
+	}
 	// API
 	e.GET("/target", getTarget)
 	e.POST("/target", postTarget)
@@ -148,17 +171,10 @@ func main() {
 	readings["Bedroom"] = 20
 	readings["Kitchen"] = 30
 
-	// TODO: Add possibility of saving old logs
-	if _, err := os.Stat(logFile); !os.IsNotExist(err) {
-		if err := os.Remove(logFile); err != nil {
-			logf(-1, "Cannot delete old logs: %s", err)
-		}
-	}
 	fmt.Println("Message Key: (EE) - Error, (WW) - Warning, (II) - Information, (DD) - Debug, (VV) - Verbose")
 	time.Sleep(100 * time.Millisecond)
 	initConfig()
 	initSchedule() // Read schedule from CSV and start target loop.
-	//initGPIO()         // Setup Raspberry Pi's GPIO pins for access and begin thermostat logic.
 	defer func() {
 		err := rpio.Close() // Remember to close Raspberry Pi's GPIO pins when done.
 		if err != nil {

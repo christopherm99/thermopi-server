@@ -1,0 +1,8 @@
+[thermoPi]
+lockout   = "10m" # Set this to amount of time to lockout between turning the A/C on and off.
+compPin   = 0     # Set this and the following values to the correct BCM pins.
+fanPin    = 0
+verbosity = 3	  # Set this to the desired verbosity level (see README.md).
+schedule  = "~/.config/thermoPi/" # Set this to your schedule.csv location.
+CORS	  = false # Set this true to enable CORS (if you are hosting an external website).
+keepLogs  = false # Set this to tell thermoPi to save old logs.

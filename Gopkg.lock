@@ -85,12 +85,12 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:bde45fb2803cf295ac488e4d5cd62fc3919636700b811fe8d3a10cf0931b68ba"
+  digest = "1:f3a8fd592d6f5355c3a8817ec8552e3ba1fb616799d945c3e56b006e8a26f203"
   name = "github.com/stianeikeland/go-rpio"
   packages = ["."]
   pruneopts = "UT"
-  revision = "019f406b4939d0ac8fb6801637506f0e2fe872d3"
-  version = "4.2.0"
+  revision = "d43a3ce8186d47f497a6785f997400a1b2f1fdc7"
+  version = "v4.4.0"
 
 [[projects]]
   digest = "1:18752d0b95816a1b777505a97f71c7467a8445b8ffb55631a7bf779f6ba4fa83"

@@ -35,7 +35,7 @@
 
 [[constraint]]
   name = "github.com/stianeikeland/go-rpio"
-  version = "4.2.0"
+  version = "4.4.0"
 
 [[constraint]]
   name = "github.com/stretchr/testify"

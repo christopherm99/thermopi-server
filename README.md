@@ -93,53 +93,7 @@ dep ensure
 ```
 The repository will now be set up for development.
 ### API Specification
-NOTE: All temperatures should be in celsius.
-#### For Frontend Development:
-* GET /target: Get current target temperature for this time slot.
-  *  Response Format Example:
-     ```json
-     { 
-       "value":25 
-     }
-     ```
-* POST /target: Set current target temperature for this time slot.
-  * Request Format: A POST request with the following parameters:
-    ```json
-    {
-      "value":25,
-      "persistent":true
-    }
-    ```
-  * Possible Responses:
-    * 202 - The POST request was accepted and will be reflected soon.
-    * 400 - The POST request is malformed (eg. too large a value) and will not be reflected.
-    * 5xx - The POST request was valid, but the server had an error.
-* GET /sensors: Get list of active sensors' ids and values.
-  * Response Format Example:
-    ```json
-    [
-      {
-        "name":"Bedroom", 
-        "value":23
-      },
-      {
-        "name":"Kitchen", 
-        "value":3
-      }
-    ]
-    ```
-* GET /sensors/{id}: Get most recent temperature reading from {id} sensor.
-  * Response Format Example:
-    ```json
-    { "value":22 }
-    ```
-#### For Sensor Development:
-* POST /sensors/{id}: Receive data from {id} sensor.
-  * Request Format: A POST request with the following parameters:
-    ```
-    value - The most recent temperature reading from the sensor.
-    ```
-  * Note: This will probably be replaced with MQTT in the future.
+See https://thermopi.docs.apiary.io
 ### Server Modularity:
 The Golang server does not require the Vue.js webapp to be served, and anything could be served by the Echo server, in
 theory. To serve different files, select no when prompted by `install.sh` to install the default webapp and place your 

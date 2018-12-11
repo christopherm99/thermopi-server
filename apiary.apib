@@ -46,6 +46,9 @@ This is the API documentation for ThermoPi's REST backend.
 
 ### View the Current Reading of a Sensor [GET]
 
++ Parameters
+    + id (required, string, `Bedroom`) ... The id of the sensor
+
 + Response 200 (application/json)
 
         {
@@ -56,9 +59,14 @@ This is the API documentation for ThermoPi's REST backend.
 
 Note: This method of sending temperature readings is deprecated, please use the MQTT API instead.
 
++ Parameters
+    + id (required, string, `Bedroom`) ... The id of the sensor
+
 + Request (application/json)
 
         {
             "permanent":false,
             "target":23
         }
+
++ Response 201

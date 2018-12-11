@@ -10,18 +10,18 @@ This is the API documentation for ThermoPi's REST backend.
 
 + Response 200 (application/json)
 
-    {
-        "value":25
-    }
+        {
+            "value":25
+        }
 
 ### Set a New Target [POST]
 
 + Request (application/json)
 
-    {
-        "value":25,
-        "persistent":true
-    }
+        {
+            "value":25,
+            "persistent":true
+        }
 
 + Response 201
 
@@ -31,25 +31,26 @@ This is the API documentation for ThermoPi's REST backend.
 
 + Response 200 (application/json)
 
-    [
-        {
-            "name":"Bedroom",
-            "value":23
-        },
-        {
-            "name":"Kitchen",
-            "value":30
-        }
-    ]
+        [
+            {
+                "name":"Bedroom",
+                "value":23
+            },
+            {
+                "name":"Kitchen",
+                "value":30
+            }
+        ]
+
 ## Specific Sensor Readings [/sensors/{id}]
 
 ### View the Current Reading of a Sensor [GET]
 
 + Response 200 (application/json)
 
-    {
-        "value":22
-    }
+        {
+            "value":22
+        }
 
 ### Set the Current Reading of a Sensor [POST]
 
@@ -57,7 +58,7 @@ Note: This method of sending temperature readings is deprecated, please use the 
 
 + Request (application/json)
 
-    {
-        "permanent":false,
-        "target":23
-    }
+        {
+            "permanent":false,
+            "target":23
+        }

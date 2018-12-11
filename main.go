@@ -183,5 +183,6 @@ func main() {
 	}()
 	time.Sleep(time.Millisecond)
 	initEcho() // Setup Echo web server.
+	subscribeMQTT()
 	beginLogic()
 }

@@ -77,6 +77,23 @@
   version = "v0.0.4"
 
 [[projects]]
+  branch = "master"
+  digest = "1:c43ae85fecab9c32663f314383bd455770dbd8cb16c42e43ddb048f61baf287f"
+  name = "github.com/paypal/gatt"
+  packages = [
+    ".",
+    "linux",
+    "linux/cmd",
+    "linux/evt",
+    "linux/gioctl",
+    "linux/socket",
+    "linux/util",
+    "xpc",
+  ]
+  pruneopts = "UT"
+  revision = "4ae819d591cfc94c496c45deb55928469542beec"
+
+[[projects]]
   digest = "1:0028cb19b2e4c3112225cd871870f2d9cf49b9b4276531f03438a88e94be86fe"
   name = "github.com/pmezard/go-difflib"
   packages = ["difflib"]
@@ -125,7 +142,7 @@
     "acme/autocert",
   ]
   pruneopts = "UT"
-  revision = "3d3f9f413869b949e48070b5bc593aa22cc2b8f2"
+  revision = "505ab145d0a99da450461ae2c1a9f6cd10d1f447"
 
 [[projects]]
   branch = "master"
@@ -137,15 +154,15 @@
     "websocket",
   ]
   pruneopts = "UT"
-  revision = "adae6a3d119ae4890b46832a2e88a95adc62b8e7"
+  revision = "610586996380ceef02dd726cc09df7e00a3f8e56"
 
 [[projects]]
   branch = "master"
-  digest = "1:225564f71149334315118db714e1ea87513e4a11cf4acb27e26bc7577cebfa0b"
+  digest = "1:e52bdb638551e9a3d12b62c90ede03f09dc19348902cb6acd3aad8d0f45d1d5a"
   name = "golang.org/x/sys"
   packages = ["unix"]
   pruneopts = "UT"
-  revision = "62eef0e2fa9b2c385f7b2778e763486da6880d37"
+  revision = "2a47403f2ae58167c4d75973960ccc62b28cb0d8"
 
 [solve-meta]
   analyzer-name = "dep"
@@ -155,6 +172,7 @@
     "github.com/eclipse/paho.mqtt.golang",
     "github.com/labstack/echo",
     "github.com/labstack/echo/middleware",
+    "github.com/paypal/gatt",
     "github.com/stianeikeland/go-rpio",
     "github.com/stretchr/testify/assert",
   ]

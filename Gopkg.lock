@@ -77,23 +77,6 @@
   version = "v0.0.4"
 
 [[projects]]
-  branch = "master"
-  digest = "1:c43ae85fecab9c32663f314383bd455770dbd8cb16c42e43ddb048f61baf287f"
-  name = "github.com/paypal/gatt"
-  packages = [
-    ".",
-    "linux",
-    "linux/cmd",
-    "linux/evt",
-    "linux/gioctl",
-    "linux/socket",
-    "linux/util",
-    "xpc",
-  ]
-  pruneopts = "UT"
-  revision = "4ae819d591cfc94c496c45deb55928469542beec"
-
-[[projects]]
   digest = "1:0028cb19b2e4c3112225cd871870f2d9cf49b9b4276531f03438a88e94be86fe"
   name = "github.com/pmezard/go-difflib"
   packages = ["difflib"]
@@ -172,7 +155,6 @@
     "github.com/eclipse/paho.mqtt.golang",
     "github.com/labstack/echo",
     "github.com/labstack/echo/middleware",
-    "github.com/paypal/gatt",
     "github.com/stianeikeland/go-rpio",
     "github.com/stretchr/testify/assert",
   ]

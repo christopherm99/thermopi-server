@@ -32,7 +32,7 @@ lockout   = "10m" # Set this to amount of time to lockout between turning the A/
 compPin   = 0     # Set this and the following values to the correct BCM pins.
 fanPin    = 0
 verbosity = 1	  # Set this to the desired verbosity level (see README.md).
-schedule  = "~/.config/thermoPi/" # Set this to your schedule.csv location.
+schedule  = "/.config/thermoPi/" # Set this to your schedule.csv location from the home folder.
 CORS	  = false # Set this true to enable CORS (if you are hosting an external website).
 keepLogs  = false # Set this to tell thermoPi to save old logs.
 `)
@@ -109,7 +109,7 @@ func initConfig() {
 	}
 	config.verbosity = data["thermoPi"].Verbosity
 	// Setup schedule location
-	scheduleFile = data["thermoPi"].Schedule
+	scheduleFile = path.Join(os.Getenv("HOME"), data["thermoPi"].Schedule, "schedule.csv")
 	logf(3, "The schedule file is set to %s", scheduleFile)
 }
 

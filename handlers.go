@@ -19,14 +19,14 @@ func postTarget(c echo.Context) error {
 	logf(3, "POST /target received")
 	dec := json.NewDecoder(c.Request().Body)
 	var m struct {
-		Target    int  `json:"target"`
+		Value     int  `json:"value"`
 		Permanent bool `json:"permanent"`
 	}
 	if err := dec.Decode(&m); err != nil {
 		logf(1, "Cannot parse POST /target: %s", err)
 		return c.NoContent(http.StatusBadRequest)
 	}
-	target = m.Target
+	target = m.Value
 	if m.Permanent {
 		setTarget(target)
 	}

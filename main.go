@@ -83,6 +83,7 @@ func initConfig() {
 		logf(-1, "Cannot read thermoPi.toml: %s", err)
 	}
 	// Setup log files.
+	config.verbosity = data["thermoPi"].Verbosity
 	if data["thermoPi"].Logs {
 		logFile = fmt.Sprintf("%s-%d.log", path.Join(os.Getenv("HOME"), "/.cache/thermoPi/thermoPi"), time.Now().Unix())
 	} else {
@@ -107,7 +108,6 @@ func initConfig() {
 	if config.cors {
 		logf(2, "CORS is enabled")
 	}
-	config.verbosity = data["thermoPi"].Verbosity
 	// Setup schedule location
 	scheduleFile = path.Join(os.Getenv("HOME"), data["thermoPi"].Schedule, "schedule.csv")
 	logf(3, "The schedule file is set to %s", scheduleFile)

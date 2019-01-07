@@ -99,18 +99,18 @@ func initConfig() {
 	if err != nil {
 		logf(-1, "Cannot read lockout value from thermoPi.toml: %s", err)
 	}
-	logf(3, "The timeout is set to %s", config.lockout)
+	logf(2, "The timeout is set to %s", config.lockout)
 	config.compPin = rpio.Pin(data["thermoPi"].CompPin)
-	logf(3, "The compressor pin is set to %d", config.compPin)
+	logf(2, "The compressor pin is set to %d", config.compPin)
 	config.fanPin = rpio.Pin(data["thermoPi"].FanPin)
-	logf(3, "The fan pin is set to %d", config.fanPin)
+	logf(2, "The fan pin is set to %d", config.fanPin)
 	config.cors = data["thermoPi"].CORS
 	if config.cors {
 		logf(2, "CORS is enabled")
 	}
 	// Setup schedule location
 	scheduleFile = path.Join(os.Getenv("HOME"), data["thermoPi"].Schedule, "schedule.csv")
-	logf(3, "The schedule file is set to %s", scheduleFile)
+	logf(2, "The schedule file is set to %s", scheduleFile)
 }
 
 func initSchedule() {
@@ -162,7 +162,8 @@ func initEcho() {
 	e.File("/", "/usr/share/thermoPi/dist/index.html")
 	e.Static("/", "/usr/share/thermoPi/dist/")
 	e.HideBanner = true
-	e.Debug = config.verbosity > 1 // Enable Echo's debug mode if verbosity is higher than information level.
+	e.HidePort = true
+	logf(2, "Starting server...")
 	logf(-1, "Cannot serve data: %s", e.Start(":8080"))
 }
 

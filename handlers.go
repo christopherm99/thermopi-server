@@ -8,7 +8,6 @@ import (
 )
 
 func getTarget(c echo.Context) error {
-	logf(3, "GET /target received")
 	data := struct {
 		Value int `json:"value"`
 	}{target}
@@ -16,7 +15,6 @@ func getTarget(c echo.Context) error {
 }
 
 func postTarget(c echo.Context) error {
-	logf(3, "POST /target received")
 	dec := json.NewDecoder(c.Request().Body)
 	var m struct {
 		Value     int  `json:"value"`
@@ -27,6 +25,7 @@ func postTarget(c echo.Context) error {
 		return c.NoContent(http.StatusBadRequest)
 	}
 	target = m.Value
+	logf(3, "POST /target received: %v", m.Value)
 	if m.Permanent {
 		setTarget(target)
 	}
@@ -34,7 +33,6 @@ func postTarget(c echo.Context) error {
 }
 
 func getSensors(c echo.Context) error {
-	logf(3, "GET /sensors received")
 	data := make([]struct {
 		Name string  `json:"name"`
 		Temp float64 `json:"value"`
